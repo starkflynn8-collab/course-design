@@ -1,0 +1,16 @@
+# Java
+/target
+*.log
+*.class
+
+# IDE
+/.idea
+*.iml
+
+# Node
+/node_modules
+/dist
+
+# OS
+.DS_Store
+git add .
