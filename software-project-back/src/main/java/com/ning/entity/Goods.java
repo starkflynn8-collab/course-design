@@ -37,4 +37,16 @@ public class Goods {
     private String gImage;
     @TableField(value = "gLevel")
     private Integer gLevel;
+    @TableField(value = "gContact")
+    private String gContact;
+    @TableField(value = "college")
+    private String college;
+    @TableField(value = "subject")
+    private String subject;
+    @TableField(value = "type")
+    private String type;
+    @TableField(value = "campus")
+    private String campus;
+
+
 }

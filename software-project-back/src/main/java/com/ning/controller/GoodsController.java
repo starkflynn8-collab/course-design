@@ -97,30 +97,56 @@ public class GoodsController {
     }
 
     @CrossOrigin
-    @ApiOperation(value = "修改商品",notes = "修改商品信息")
-    @ApiImplicitParam(name = "goods",value = "商品的实例对象，由前端传入对象的对应属性")
+    @ApiOperation(value = "修改商品（支持图片修改）", notes = "修改商品信息，可选上传新图片")
     @PostMapping("/update")
     public Map<String, Object> updateGoods(
-            @RequestParam(value = "token",defaultValue = "null") String token,
-            @ModelAttribute Goods goods)
-    {
-        System.out.println(token);
+            @RequestParam("token") String token,
+            @RequestParam(value = "gImageFile", required = false) MultipartFile gImageFile,
+            @ModelAttribute Goods goods
+    ) {
         try {
-            if(currentUserService.verityToken(token)){
-                int i = goodsService.update(goods);
-                if(i > 0){
-                    return Message.getMessage("修改成功");
-                }else {
-                    return Message.getMessage("修改失败");
-                }
-            }else {
+            // 1️⃣ 校验身份
+            if (!currentUserService.verityToken(token)) {
                 return Message.getMessage("身份校验失败");
             }
-        }catch (Exception e){
+
+            // 2️⃣ 如果有新图片 → 保存图片
+            if (gImageFile != null && !gImageFile.isEmpty()) {
+
+                String originalFilename = gImageFile.getOriginalFilename();
+                String suffix = originalFilename != null && originalFilename.contains(".")
+                        ? originalFilename.substring(originalFilename.lastIndexOf("."))
+                        : "";
+
+                String fileName = System.currentTimeMillis() + "_" + (int)(Math.random() * 10000) + suffix;
+
+                String uploadDir = System.getProperty("user.dir") + "/upload/";
+                File dir = new File(uploadDir);
+                if (!dir.exists()) {
+                    dir.mkdirs();
+                }
+
+                File dest = new File(uploadDir + fileName);
+                gImageFile.transferTo(dest);
+
+                // ⚠️ 关键：设置新图片路径
+                goods.setGImage("/upload/" + fileName);
+            }
+
+            // 3️⃣ 执行更新
+            int rows = goodsService.update(goods);
+            if (rows > 0) {
+                return Message.getMessage("修改成功");
+            } else {
+                return Message.getMessage("修改失败");
+            }
+
+        } catch (Exception e) {
             e.printStackTrace();
             return Message.getMessage("服务器处理异常");
         }
     }
+
 
     @ApiOperation(value = "添加商品（支持图片上传）", notes = "用户发布二手书，支持上传商品图片")
     @PostMapping("/add")
@@ -132,6 +158,12 @@ public class GoodsController {
             @RequestParam String gContent,
             @RequestParam Double gPrice,
             @RequestParam Integer gLevel,
+            @RequestParam String gContact,
+            @RequestParam String college,
+            @RequestParam String subject,
+            @RequestParam String type,
+            @RequestParam String campus,
+
             @RequestParam(value = "gImageFile", required = false) MultipartFile gImageFile) {
 
         try {
@@ -187,6 +219,12 @@ public class GoodsController {
             goods.setGPrice(gPrice);
             goods.setGLevel(gLevel);
             goods.setUId(uId);
+            goods.setGContact(gContact);
+            goods.setCollege(college);
+            goods.setSubject(subject);
+            goods.setType(type);
+            goods.setCampus(campus);
+
             goods.setGImage(imageUrl != null ? imageUrl : "/upload/default-book.jpg"); // 可选：给个默认图片
 
             // 5. 保存到数据库

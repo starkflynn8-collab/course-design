@@ -80,6 +80,18 @@ public class GoodsService {
         if(goods.getUId() != null) {
             wp.eq("uId", goods.getUId());
         }
+        if(goods.getCollege() != null && !goods.getCollege().isEmpty()){
+            wp.eq("college", goods.getCollege());
+        }
+        if(goods.getSubject() != null && !goods.getSubject().isEmpty()){
+            wp.eq("subject", goods.getSubject());
+        }
+        if(goods.getType() != null && !goods.getType().isEmpty()){
+            wp.eq("type", goods.getType());
+        }
+        if(goods.getCampus() != null && !goods.getCampus().isEmpty()){
+            wp.eq("campus", goods.getCampus());
+        }
 
 
         return goodsMapper.selectPage(goodsPage, wp);

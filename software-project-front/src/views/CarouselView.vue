@@ -40,18 +40,49 @@
       <el-row>
         <el-tabs @tab-click="handleClick" class="tab" v-model="activeName">
           <el-tab-pane
-            v-for="(lab, index) in labels"
-            :label="lab"
-            :key="index"
-            :name="names[index]"
+              v-for="(lab, index) in labels"
+              :label="lab"
+              :key="index"
+              :name="names[index]"
           >
+            <!-- 专业核心二级 Tabs -->
+            <el-radio-group
+                v-if="activeName === 'major'"
+                v-model="majorSubType"
+                size="small"
+                style="margin-bottom: 12px"
+            >
+              <el-radio-button label="全部"></el-radio-button>
+              <el-radio-button label="工学"></el-radio-button>
+              <el-radio-button label="理学"></el-radio-button>
+              <el-radio-button label="经管"></el-radio-button>
+              <el-radio-button label="人文"></el-radio-button>
+              <el-radio-button label="医学"></el-radio-button>
+              <el-radio-button label="艺术"></el-radio-button>
+            </el-radio-group>
+
+            <!-- 校区二级 Tabs -->
+            <el-tabs
+                v-if="activeName === 'campus'"
+                v-model="campusActive"
+                @tab-click="handleCampusClick"
+                style="margin-bottom: 20px"
+            >
+              <el-tab-pane label="九龙湖校区" name="九龙湖" />
+              <el-tab-pane label="四牌楼校区" name="四牌楼" />
+              <el-tab-pane label="丁家桥校区" name="丁家桥" />
+            </el-tabs>
+
             <!-- 卡片 -->
             <el-row style="margin: 10px">
               <el-col v-for="item in goods" :key="item.id" :span="8">
                 <el-card :header="item.gname" v-if="item.gcount > 0">
+
                   <el-image :src="getImageUrl(item.gimage)" fit="cover" style="height: 200px;"></el-image>
+
                   <div style="padding: 14px">
                     <div class="bottom clearfix">
+
                       <span
                         style="
                           display: inline-block;
@@ -66,6 +97,7 @@
                           text-align: left;
                           width: 100%;
                         "
+
                         ><b>价格：</b>{{ item.gprice }} 元</span
                       >
                       <span
@@ -74,16 +106,41 @@
                           text-align: left;
                           width: 100%;
                         "
+
                         ><b>数量：</b>{{ item.gcount }} 个</span
                       ><br />
+                      <div style="margin: 6px 0">
+                        <el-tag
+                            v-for="(tag, i) in getSubjectTags(item)"
+                            :key="i"
+                            size="mini"
+                            type="success"
+                            style="margin-right: 6px"
+                        >
+                          {{ tag }}
+                        </el-tag>
+                      </div>
+
+                      <div style="display: flex; align-items: center; margin-top: 4px;">
+                        <span style="margin-right: 6px;"><b>新旧程度：</b></span>
+                        <el-rate
+                            v-model="item.glevel"
+                            disabled
+                            text-color="#ff9900"
+                        />
+                      </div>
+
                       <span
-                        style="
-                          display: inline-block;
-                          text-align: left;
-                          width: 100%;
-                        "
-                        ><b>评价：</b>{{ item.glevel }} 分</span
+                          style="
+    display: inline-block;
+    text-align: left;
+    width: 100%;
+  "
+                          v-if="item.gcontact"
                       >
+  <b>联系方式：</b>{{ item.gcontact }}
+</span>
+
                       <el-button type="text" class="button" @click="onBuy(item)"
                         >购买</el-button
                       >
@@ -115,16 +172,19 @@ import lunbo2 from '@/assets/images/lunbo2.png';
 export default {
   name: "Index",
   data() {
+
     return {
       activeIndex: "1",
+      majorSubType: "全部", // 专业核心二级分类
+
       carouselGoods: [
         { gid: 1, gimage: lunbo1 },
         { gid: 2, gimage: lunbo2 },
       ],
       activeName: "all",
       goods: [],
-      labels: ["全部", "类别一", "类别二", "类别三"],
-      names: ["all", "group-one", "group-two", "group-three"],
+      labels: ["全部", "通识必修", "专业核心", "考研资料", "校区专区"],
+      names: ["all", "common", "major", "post", "campus"],
       currentPage: 1,
       pageLimits: [10, 20, 30, 40, 50],
       pageSize: 10,
@@ -135,9 +195,30 @@ export default {
       currGoods: {},
       currUser: null,
       apiBase: 'http://localhost:8888',
+      campusActive: "九龙湖",
+      homeFilter: {
+        subject: "",
+        type: "",
+        campus: "",
+        college: ""
+      },
+
     };
   },
   methods: {
+    getSubjectTags(item) {
+      if (item.subject === "通识基础课") {
+
+        if (item.gname.includes("物理") || item.gname.includes("数学") || item.gname.includes("线性")) {
+          return ["工科必修", "理工通用"];
+        }
+        if (item.gname.includes("概率")) {
+          return ["工科/经管", "核心基础"];
+        }
+        return ["通识必修"];
+      }
+      return [];
+    },
 
     getImageUrl(gimage) {
       if (!gimage) return '/default-book.jpg';  // 没图显示默认
@@ -151,43 +232,66 @@ export default {
     toRegister() {
       this.$router.push({ path: "/Register" });
     },
-    handleClick(tab, event) {
-      let clickName = tab.name;
-      if (clickName === "all") {
-        this.searchName = "";
-      } else if (clickName === "group-one") {
-        this.searchName = "1";
-      } else if (clickName === "group-two") {
-        this.searchName = "2";
-      } else if (clickName === "group-three") {
-        this.searchName = "3";
+    handleClick(tab) {
+
+      this.homeFilter = {
+        subject: "",
+        type: "",
+        campus: "",
+        college: ""
+      };
+
+      switch (tab.name) {
+        case "all":
+          break;
+        case "common":
+          this.homeFilter.subject = "通识基础课";
+          break;
+        case "major":
+          this.homeFilter.subject = "专业课";
+          if (!this.majorSubType) this.majorSubType = "全部";
+          break;
+        case "post":
+          this.homeFilter.type = "考研";
+          break;
+        case "campus":
+          this.campusActive = "九龙湖";
+          this.homeFilter.campus = "九龙湖";
+          break;
       }
+
       this.currentPage = 1;
-      this.getGoods(this.currentPage, this.limit);
+      this.getGoods(this.currentPage, this.pageSize);
     },
+    handleCampusClick(tab) {
+      this.homeFilter.campus = tab.name;
+      this.currentPage = 1;
+      this.getGoods(this.currentPage, this.pageSize);
+    },
+
     getGoods(page, limit) {
       this.axios
-        .get(
-          "http://localhost:8888/goods/search",
-          {
+          .get("http://localhost:8888/goods/search", {
             params: {
-              gName: this.searchName,
-              page: page,
-              limit: limit,
-            },
-          },
-          { emulateJSON: true }
-        )
-        .then((resp) => {
-          if (resp.data.message === "ok") {
-            this.itemTotal = resp.data.data.total;
-            this.goods = resp.data.data.records;
-          }
-        })
-        .catch((error) => {
-          console.log(error);
-        });
+              page,
+              limit,
+              subject: this.homeFilter.subject,
+              type: this.homeFilter.type,
+              campus: this.homeFilter.campus,
+              college: this.homeFilter.college
+            }
+          })
+          .then((resp) => {
+            if (resp.data.message === "ok" || resp.data.code === 200) {
+              this.itemTotal = resp.data.data.total || resp.data.data.totalRecords;
+              this.goods = resp.data.data.records || resp.data.data.list;
+            }
+          })
+          .catch((error) => {
+            console.log(error);
+          });
     },
+
     handleSizeChange(limit) {
       this.limit = limit;
       this.currentPage = 1;
@@ -276,6 +380,18 @@ export default {
         });
       this.currGoods = {};
     },
+  },
+
+  watch: {
+    majorSubType(newVal) {
+      if (newVal === "全部") {
+        this.homeFilter.college = "";
+      } else {
+        this.homeFilter.college = newVal;
+      }
+      this.currentPage = 1;
+      this.getGoods(this.currentPage, this.pageSize);
+    }
   },
 
   created() {
